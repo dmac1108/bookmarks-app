@@ -1,33 +1,74 @@
 import React, { Component } from  'react';
 import BookmarksContext from '../BookmarksContext';
 import config from '../config'
-import './AddBookmark.css';
+import '../AddBookmark/AddBookmark.css';
 
 const Required = () => (
   <span className='AddBookmark__required'>*</span>
 )
 
-class AddBookmark extends Component {
+class EditBookmark extends Component {
   static contextType = BookmarksContext;
 
   state = {
+    title: {
+      value: ''
+    },
+    url: {
+      value: ''
+    },
+    description: {
+      value: ''
+    },
+    rating: {
+      value: ''
+    },
     error: null,
   };
+  
+  setBookmarks = bookmarks => {
+    this.setState({
+      title: {value: bookmarks.title},
+      url: {value: bookmarks.url},
+      description: {value: bookmarks.description},
+      rating: {value: bookmarks.rating},
+      error: null,
+      
+    })
+  }
+
+  onTitleChange(title){
+    this.setState({ title: {value: title}});
+  }
+
+  onUrlChange(url){
+    this.setState({ url: {value: url}});
+  }
+
+  onDescriptionChange(description){
+    this.setState({ description: {value: description}});
+  }
+
+  onRatingChange(rating){
+    this.setState({ rating: {value: rating}});
+  }
 
   handleSubmit = e => {
     e.preventDefault()
     // get the form fields from the event
-    const { title, url, description, rating } = e.target
-    const bookmark = {
-      title: title.value,
-      url: url.value,
-      description: description.value,
-      rating: rating.value,
+    
+    const inputValues = {
+      title: this.state.title.value,
+      url: this.state.url.value,
+      description: this.state.description.value,
+      rating: this.state.rating.value
     }
+    const bookmarkId = this.props.match.params.bookmarkId
+    
     this.setState({ error: null })
-    fetch(config.API_ENDPOINT, {
-      method: 'POST',
-      body: JSON.stringify(bookmark),
+    fetch(config.API_ENDPOINT + `/${bookmarkId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(inputValues),
       headers: {
         'content-type': 'application/json',
         'authorization': `bearer ${config.API_KEY}`
@@ -44,11 +85,7 @@ class AddBookmark extends Component {
         return res.json()
       })
       .then(data => {
-        title.value = ''
-        url.value = ''
-        description.value = ''
-        rating.value = ''
-        this.context.addBookmark(data)
+        this.context.updateBookmark(data)
         this.props.history.push('/')
       })
       .catch(error => {
@@ -60,11 +97,30 @@ class AddBookmark extends Component {
     this.props.history.push('/')
   };
 
+  componentDidMount(){
+    fetch(config.API_ENDPOINT + `/${this.props.match.params.bookmarkId}`, {
+      method: 'GET',
+      headers: {
+        'content-type': 'application/json',
+        'Authorization': `Bearer ${config.API_KEY}`
+      }
+    })
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(res.status)
+        }
+        return res.json()
+      })
+      .then(this.setBookmarks)
+      .catch(error => this.setState({ error }))
+  }
+
   render() {
     const { error } = this.state
+    const {title, url, description, rating } = this.state
     return (
       <section className='AddBookmark'>
-        <h2>Create a bookmark</h2>
+        <h2>Edit a bookmark</h2>
         <form
           className='AddBookmark__form'
           onSubmit={this.handleSubmit}
@@ -84,6 +140,8 @@ class AddBookmark extends Component {
               id='title'
               placeholder='Great website!'
               required
+              onChange = {e => this.onTitleChange(e.target.value)}
+              value =  {title.value}
             />
           </div>
           <div>
@@ -98,6 +156,8 @@ class AddBookmark extends Component {
               id='url'
               placeholder='https://www.great-website.com/'
               required
+              onChange = {e => this.onUrlChange(e.target.value) }
+              value = {url.value}
             />
           </div>
           <div>
@@ -107,6 +167,8 @@ class AddBookmark extends Component {
             <textarea
               name='description'
               id='description'
+              onChange = {e => this.onDescriptionChange(e.target.value) }
+              value = {description.value}
             />
           </div>
           <div>
@@ -123,6 +185,8 @@ class AddBookmark extends Component {
               min='1'
               max='5'
               required
+              onChange = {e => this.onRatingChange(e.target.value) }
+              value = {rating.value}
             />
           </div>
           <div className='AddBookmark__buttons'>
@@ -140,4 +204,4 @@ class AddBookmark extends Component {
   }
 }
 
-export default AddBookmark;
+export default EditBookmark;
